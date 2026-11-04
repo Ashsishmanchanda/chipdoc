@@ -44,3 +44,4 @@ class DatasheetInfo(BaseModel):
     direct_cdn_url: str
     content_type: str = "application/pdf"
     content_length_bytes: Optional[int] = None
+

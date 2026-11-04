@@ -29,3 +29,4 @@ def test_resolve_ti_powerchip(catalog_service):
     assert info is not None
     assert info.direct_cdn_url.endswith(".pdf")
     assert any(domain in info.direct_cdn_url for domain in ["datasheet.lcsc.com", "ti.com"])
+

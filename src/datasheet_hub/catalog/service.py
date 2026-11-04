@@ -60,3 +60,4 @@ class CatalogService:
             r.raise_for_status()
             for chunk in r.iter_bytes(chunk_size=65536):
                 yield chunk
+

@@ -18,3 +18,4 @@ def test_api_resolve_datasheet(client):
     data = resp.json()
     assert data["part_id"] == "C15742"
     assert "datasheet.lcsc.com/datasheet/pdf/" in data["direct_cdn_url"]
+

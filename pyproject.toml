@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "datasheet-hub"
+name = "dlogex"
 version = "1.0.0"
-description = "Modern EDA platform backend for component discovery, direct CDN datasheet resolution, and circuit synthesis"
+description = "dlogex: Modern EDA engine for component discovery, direct CDN datasheet streaming, and circuit synthesis"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -28,7 +28,7 @@ dev = [
 ]
 
 [project.scripts]
-datasheet-hub = "datasheet_hub.cli.main:main"
+dlogex = "datasheet_hub.cli.main:main"
 dhub = "datasheet_hub.cli.main:main"
 
 [tool.setuptools.packages.find]

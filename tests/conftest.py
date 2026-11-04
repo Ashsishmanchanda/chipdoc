@@ -13,3 +13,4 @@ def catalog_service():
 @pytest.fixture(scope="session")
 def client():
     return TestClient(app)
+

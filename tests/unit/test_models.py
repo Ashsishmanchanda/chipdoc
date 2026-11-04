@@ -23,3 +23,4 @@ def test_datasheet_info_validation():
     )
     assert info.direct_cdn_url.endswith(".pdf")
     assert info.content_length_bytes == 5000000
+

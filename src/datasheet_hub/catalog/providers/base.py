@@ -24,3 +24,4 @@ class BaseProvider(ABC):
     def resolve_datasheet_url(self, part_id_or_mpn: str) -> Optional[DatasheetInfo]:
         """Resolve a component directly to its raw, un-gated CDN PDF URL."""
         pass
+

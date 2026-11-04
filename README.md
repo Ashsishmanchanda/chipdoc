@@ -1,40 +1,40 @@
-# DatasheetHub
+# dlogex
 
-**DatasheetHub** is an open-source, modular backend architecture designed for automated electronics research, component discovery, direct CDN datasheet streaming, and PCB circuit synthesis.
+**`dlogex`** (Datasheet Logic Extractor) is an open-source EDA backend platform designed for automated electronic component discovery, direct cloud CDN datasheet streaming, and PCB circuit synthesis.
 
 ---
 
 ## Clean Architecture & Folder Structure
 
-```
-datasheet-cli/
-├── docs/                        # Architecture & API documentation
+```text
+dlogex/
+├── docs/                                  # Technical specifications & roadmap
 │   └── architecture.md
-├── src/datasheet_hub/           # Core package
-│   ├── api/                     # REST API layer (FastAPI)
-│   │   ├── app.py               # Application factory & CORS
-│   │   └── routes/              # Modular route controllers
-│   │       ├── parts.py         # Component search & detail endpoints
-│   │       └── datasheets.py    # CDN resolution & CORS-free proxy streaming
-│   ├── catalog/                 # Layer 1: Component Catalog & Resolvers
-│   │   ├── models.py            # Pydantic domain models
-│   │   ├── service.py           # CatalogService coordinator
-│   │   └── providers/           # Distributor and CDN integrations
-│   │       ├── base.py          # Abstract provider interface
-│   │       ├── lcsc.py          # LCSC / JLCPCB 2-hop direct CDN resolver
-│   │       └── ti.py            # Texas Instruments deterministic CDN
-│   ├── extraction/              # Layer 2: PDF Parsing & Circuit Extraction (Planned)
-│   ├── synthesis/               # Layer 3 & 4: Math Solvers & KiCad Generation (Planned)
-│   └── cli/                     # Developer CLI interface
-│       └── main.py              # CLI entrypoint (`dhub` / `datasheet-hub`)
-├── tests/                       # Test suite
-│   ├── conftest.py              # Pytest fixtures & FastAPI TestClient
-│   ├── unit/                    # Fast isolated tests
+├── src/datasheet_hub/                     # Core package
+│   ├── api/                               # REST API layer (FastAPI)
+│   │   ├── app.py                         # Application factory, CORS, and health check
+│   │   └── routes/                        # Decoupled endpoint routers
+│   │       ├── parts.py                   # /api/parts (Search & component details)
+│   │       └── datasheets.py              # /api/datasheets (Direct CDN & streaming proxy)
+│   ├── catalog/                           # Layer 1: Component Discovery & Resolvers
+│   │   ├── models.py                      # Pydantic schemas (PartSummary, PartDetail, DatasheetInfo)
+│   │   ├── service.py                     # Catalog coordinator & memory streaming
+│   │   └── providers/                     # Data source integrations
+│   │       ├── base.py                    # Standardized abstract provider interface
+│   │       ├── lcsc.py                    # LCSC / JLCPCB 2-hop cloud CDN resolver
+│   │       └── ti.py                      # Texas Instruments deterministic CDN provider
+│   ├── extraction/                        # Layer 2: PDF Parsing & Circuit Extraction (Planned)
+│   ├── synthesis/                         # Layer 3 & 4: Math Solver & KiCad Generator (Planned)
+│   └── cli/                               # Developer & scripting CLI (`dlogex` / `dhub`)
+│       └── main.py                        # Terminal commands: search, resolve, serve
+├── tests/                                 # Complete automated test suite
+│   ├── conftest.py                        # Shared fixtures & FastAPI TestClient
+│   ├── unit/                              # Fast isolated offline tests
 │   │   └── test_models.py
-│   └── integration/             # Live network & API integration tests
-│       ├── test_catalog.py
-│       └── test_api_endpoints.py
-├── pyproject.toml
+│   └── integration/                       # Live network & API integration tests
+│       ├── test_catalog.py                # Live LCSC and TI resolution tests
+│       └── test_api_endpoints.py          # FastAPI endpoint integration tests
+├── pyproject.toml                         # Standard PEP 621 packaging
 └── README.md
 ```
 
@@ -42,7 +42,7 @@ datasheet-cli/
 
 ## Layer 1: Component Search & Direct CDN Datasheet Resolution
 
-* **0 Local Storage Required:** Resolves direct un-gated cloud CDN PDF URLs (`datasheet.lcsc.com/datasheet/pdf/<hash>.pdf`) in **< 300ms** on-demand without bulk-downloading files.
+* **0 Local Storage Required:** Resolves direct un-gated cloud CDN PDF URLs (`datasheet.lcsc.com/datasheet/pdf/<hash>.pdf`) in **< 300ms** on-demand without hoarding static files.
 * **CORS-Free Proxy Stream:** Streams raw PDF bytes directly to web frontend viewers (e.g. `pdf.js` in React) to bypass browser cross-origin blocks.
 * **Production REST API:** Native FastAPI server with interactive Swagger documentation.
 
@@ -52,24 +52,24 @@ datasheet-cli/
 
 ### 1. Installation
 ```bash
-git clone https://github.com/Ashsishmanchanda/datasheet-cli.git
-cd datasheet-cli
+git clone https://github.com/Ashsishmanchanda/dlogex.git
+cd dlogex
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 ```
 
-### 2. Developer CLI (`dhub`)
+### 2. Developer CLI (`dlogex`)
 ```bash
 # Search components
-dhub search "STM32F405"
+dlogex search "STM32F405"
 
 # Resolve direct cloud CDN PDF URL
-dhub resolve "C15742"
-dhub resolve "TPS62160"
+dlogex resolve "C15742"
+dlogex resolve "TPS62160"
 
 # Start the REST API server for your UI
-dhub serve --port 8000
+dlogex serve --port 8000
 ```
 
 ### 3. REST API Endpoints
@@ -82,4 +82,4 @@ dhub serve --port 8000
 | `GET` | `/api/datasheets/{part_id}` | Returns direct cloud CDN URL (0 bytes stored on server) |
 | `GET` | `/api/datasheets/{part_id}/proxy` | Streams raw PDF stream directly to browser viewers |
 
-Interactive API documentation is accessible at `http://127.0.0.1:8000/docs` when running `dhub serve`.
+Interactive API documentation is accessible at `http://127.0.0.1:8000/docs` when running `dlogex serve`.
