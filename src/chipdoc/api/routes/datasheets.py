@@ -3,13 +3,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from datasheet_hub.catalog.models import DatasheetInfo
-from datasheet_hub.catalog.service import CatalogService
+from chipdoc.catalog.models import DatasheetInfo
+from chipdoc.catalog.service import CatalogService
 
 router = APIRouter(prefix="/api/datasheets", tags=["Datasheets"])
 
 
-from datasheet_hub.api.routes.parts import get_service
+from chipdoc.api.routes.parts import get_service
 
 
 @router.get("/{part_id}", response_model=DatasheetInfo)

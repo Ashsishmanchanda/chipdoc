@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from datasheet_hub.catalog.service import CatalogService
+from chipdoc.catalog.service import CatalogService
 
 app = typer.Typer(
     name="dhub",
@@ -85,7 +85,7 @@ def serve(
     """Start the FastAPI backend server for web frontend UIs."""
     console.print(f"[bold green]Starting DatasheetHub API on http://{host}:{port}[/bold green]")
     console.print(f"[cyan]Interactive Swagger UI: http://{host}:{port}/docs[/cyan]")
-    uvicorn.run("datasheet_hub.api.app:app", host=host, port=port, reload=reload)
+    uvicorn.run("chipdoc.api.app:app", host=host, port=port, reload=reload)
 
 
 def main():

@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from datasheet_hub.catalog.models import DatasheetInfo, PartDetail, PartSummary
+from chipdoc.catalog.models import DatasheetInfo, PartDetail, PartSummary
 
 
 class BaseProvider(ABC):

@@ -1,4 +1,4 @@
-from datasheet_hub.catalog.models import PartSummary, PartDetail, DatasheetInfo, PriceBreak
+from chipdoc.catalog.models import PartSummary, PartDetail, DatasheetInfo, PriceBreak
 
 
 def test_part_summary_validation():

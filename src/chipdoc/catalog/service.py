@@ -3,9 +3,9 @@
 from typing import Dict, List, Optional
 import httpx
 
-from datasheet_hub.catalog.models import DatasheetInfo, PartDetail, PartSummary
-from datasheet_hub.catalog.providers.lcsc import LCSCProvider
-from datasheet_hub.catalog.providers.ti import TIProvider
+from chipdoc.catalog.models import DatasheetInfo, PartDetail, PartSummary
+from chipdoc.catalog.providers.lcsc import LCSCProvider
+from chipdoc.catalog.providers.ti import TIProvider
 
 
 class CatalogService:

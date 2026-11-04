@@ -3,8 +3,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from datasheet_hub.api.routes.datasheets import router as datasheets_router
-from datasheet_hub.api.routes.parts import router as parts_router
+from chipdoc.api.routes.datasheets import router as datasheets_router
+from chipdoc.api.routes.parts import router as parts_router
 
 
 def create_app() -> FastAPI:

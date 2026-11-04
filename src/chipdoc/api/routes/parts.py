@@ -3,8 +3,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from datasheet_hub.catalog.models import PartDetail, PartSummary
-from datasheet_hub.catalog.service import CatalogService
+from chipdoc.catalog.models import PartDetail, PartSummary
+from chipdoc.catalog.service import CatalogService
 
 router = APIRouter(prefix="/api/parts", tags=["Parts"])
 

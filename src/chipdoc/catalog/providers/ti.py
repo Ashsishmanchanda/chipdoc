@@ -4,8 +4,8 @@ import re
 from typing import List, Optional
 import httpx
 
-from datasheet_hub.catalog.models import DatasheetInfo, PartDetail, PartSummary
-from datasheet_hub.catalog.providers.base import BaseProvider
+from chipdoc.catalog.models import DatasheetInfo, PartDetail, PartSummary
+from chipdoc.catalog.providers.base import BaseProvider
 
 
 class TIProvider(BaseProvider):
