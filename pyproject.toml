@@ -3,31 +3,32 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "datasheet-cli"
-version = "0.1.0"
-description = "Automated pipeline converting component datasheets and reference designs to KiCad PCB schematics"
+name = "part-hub"
+version = "1.0.0"
+description = "Layer 1 Component Search and Direct Datasheet CDN Resolver (0 Local Storage)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "datasheet-cli contributors"}
+    {name = "Ashsish Manchanda"}
 ]
 dependencies = [
+    "httpx>=0.25.0",
+    "pydantic>=2.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
     "typer>=0.9.0",
     "rich>=13.0.0",
-    "pydantic>=2.0.0",
-    "pymupdf>=1.23.0",
-    "httpx>=0.25.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    "ruff>=0.1.0",
+    "pytest-asyncio>=0.21.0",
 ]
 
 [project.scripts]
-datasheet-cli = "datasheet_cli.cli:main"
+part-hub = "part_hub.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
