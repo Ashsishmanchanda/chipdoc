@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "part-hub"
+name = "datasheet-hub"
 version = "1.0.0"
-description = "Layer 1 Component Search and Direct Datasheet CDN Resolver (0 Local Storage)"
+description = "Modern EDA platform backend for component discovery, direct CDN datasheet resolution, and circuit synthesis"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -28,7 +28,8 @@ dev = [
 ]
 
 [project.scripts]
-part-hub = "part_hub.cli:main"
+datasheet-hub = "datasheet_hub.cli.main:main"
+dhub = "datasheet_hub.cli.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

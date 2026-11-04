@@ -1,16 +1,11 @@
-"""LCSC and JLCPCB provider.
+"""LCSC / JLCPCB catalog provider with direct Alibaba Cloud OSS CDN PDF resolution."""
 
-Provides unauthenticated, direct component search and 2-hop resolution
-to raw Alibaba/AWS CDN PDF datasheets on `datasheet.lcsc.com`.
-"""
-
-import json
 import re
 from typing import List, Optional
 import httpx
 
-from part_hub.core.models import DatasheetInfo, PartDetail, PartSummary, PriceBreak
-from part_hub.providers.base import BaseProvider
+from datasheet_hub.catalog.models import DatasheetInfo, PartDetail, PartSummary, PriceBreak
+from datasheet_hub.catalog.providers.base import BaseProvider
 
 
 class LCSCProvider(BaseProvider):
@@ -55,7 +50,6 @@ class LCSCProvider(BaseProvider):
 
             results = []
             for item in items[:limit]:
-                # Extract first price break
                 price_usd = None
                 prices = item.get("componentPrices", [])
                 if prices:
@@ -74,18 +68,17 @@ class LCSCProvider(BaseProvider):
                         category=item.get("secondTypeNameEn") or item.get("firstTypeNameEn"),
                         stock=item.get("stockCount", 0),
                         price_usd=price_usd,
-                        datasheet_url=None,  # Resolved lazily or via get_detail
+                        datasheet_url=None,
                         source="lcsc",
                     )
                 )
             return results
-        except Exception as e:
+        except Exception:
             return []
 
     def get_detail(self, part_id: str) -> Optional[PartDetail]:
         """Fetch complete component specs and resolve direct datasheet CDN URL."""
         code = part_id.strip().upper()
-        # If input is not a C-code, try searching first
         if not re.match(r"^C\d+$", code):
             search_results = self.search(code, limit=1)
             if not search_results:
@@ -100,11 +93,8 @@ class LCSCProvider(BaseProvider):
                 return None
 
             landing_url = res_data.get("dataManualUrl")
-            direct_cdn_url = None
-            if landing_url:
-                direct_cdn_url = self._resolve_landing_to_cdn(landing_url)
+            direct_cdn_url = self._resolve_landing_to_cdn(landing_url) if landing_url else None
 
-            # Price breaks
             price_breaks = []
             for p in res_data.get("prices", []):
                 try:
@@ -117,7 +107,6 @@ class LCSCProvider(BaseProvider):
                 except Exception:
                     continue
 
-            # Attributes
             attributes = {}
             for attr in res_data.get("attributes", []):
                 name = attr.get("attributeNameEn")
@@ -149,7 +138,6 @@ class LCSCProvider(BaseProvider):
         if not detail or not detail.datasheet_url:
             return None
 
-        # Check content length via HEAD request
         length = None
         try:
             head_resp = self.client.head(detail.datasheet_url, timeout=5.0)
@@ -174,7 +162,6 @@ class LCSCProvider(BaseProvider):
                 return None
 
             html = resp.text
-            # Look for direct CDN links: https://datasheet.lcsc.com/datasheet/pdf/<hash>.pdf
             matches = re.findall(
                 r"https://datasheet\.lcsc\.com/datasheet/pdf/[a-f0-9]+\.pdf",
                 html,
@@ -182,7 +169,6 @@ class LCSCProvider(BaseProvider):
             if matches:
                 return matches[0]
 
-            # Fallback to broader match
             fallback = re.findall(r"https://datasheet\.lcsc\.com/[^\"\'\s<>]+\.pdf", html)
             if fallback:
                 return fallback[0].split("?")[0]

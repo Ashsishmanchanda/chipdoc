@@ -1,12 +1,12 @@
-"""Abstract base provider for component catalog search and datasheet resolution."""
+"""Abstract base class for all component catalog providers."""
 
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from part_hub.core.models import PartSummary, PartDetail, DatasheetInfo
+from datasheet_hub.catalog.models import DatasheetInfo, PartDetail, PartSummary
 
 
 class BaseProvider(ABC):
-    """Abstract interface for component distributors and vendor CDNs."""
+    """Standardized provider interface for distributor APIs and vendor CDNs."""
 
     name: str = "base"
 
@@ -17,10 +17,10 @@ class BaseProvider(ABC):
 
     @abstractmethod
     def get_detail(self, part_id: str) -> Optional[PartDetail]:
-        """Fetch detailed attributes, price breaks, and datasheet URLs."""
+        """Fetch full parametric attributes, price tiers, and datasheet links."""
         pass
 
     @abstractmethod
     def resolve_datasheet_url(self, part_id_or_mpn: str) -> Optional[DatasheetInfo]:
-        """Resolve a part identifier to its direct raw CDN PDF link."""
+        """Resolve a component directly to its raw, un-gated CDN PDF URL."""
         pass

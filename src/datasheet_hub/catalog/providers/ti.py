@@ -1,11 +1,11 @@
-"""Texas Instruments direct CDN provider."""
+"""Texas Instruments direct deterministic CDN provider."""
 
 import re
 from typing import List, Optional
 import httpx
 
-from part_hub.core.models import DatasheetInfo, PartDetail, PartSummary
-from part_hub.providers.base import BaseProvider
+from datasheet_hub.catalog.models import DatasheetInfo, PartDetail, PartSummary
+from datasheet_hub.catalog.providers.base import BaseProvider
 
 
 class TIProvider(BaseProvider):
@@ -26,7 +26,6 @@ class TIProvider(BaseProvider):
         )
 
     def search(self, query: str, limit: int = 10) -> List[PartSummary]:
-        # TI direct symlink is accessed when MPN matches TI naming convention
         clean = re.sub(r"[^A-Za-z0-9]", "", query).lower()
         info = self.resolve_datasheet_url(clean)
         if info:
