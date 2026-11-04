@@ -1,0 +1,134 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TrainingExample",
+  "type": "object",
+  "required": [
+    "assigned_split",
+    "candidate_ids",
+    "document_family_id",
+    "example_id",
+    "observation_ids",
+    "ontology_snapshot_digest",
+    "producer",
+    "rights_snapshot_ids",
+    "schema_version",
+    "source_record_ids",
+    "task",
+    "training_label_record_id"
+  ],
+  "properties": {
+    "assigned_split": {
+      "type": "string"
+    },
+    "candidate_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "datasheet_sketch_digest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "document_family_id": {
+      "type": "string"
+    },
+    "document_ir_logical_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "document_state_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "example_id": {
+      "type": "string"
+    },
+    "manufacturer_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "observation_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ontology_snapshot_digest": {
+      "type": "string"
+    },
+    "producer": {
+      "$ref": "#/definitions/SupervisionProducer"
+    },
+    "rights_snapshot_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "source_record_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "task": {
+      "type": "string"
+    },
+    "template_family_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "training_label_record_id": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "SupervisionProducer": {
+      "type": "object",
+      "required": [
+        "configuration_digest",
+        "name",
+        "version"
+      ],
+      "properties": {
+        "build": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_digest": {
+          "type": "string"
+        },
+        "model_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

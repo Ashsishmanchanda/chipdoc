@@ -1,66 +1,497 @@
 # datasheet-cli
 
-**`datasheet-cli`** is an automated pipeline that bridges the gap between component datasheets (TI, STMicroelectronics, ADI, etc.) and ready-to-merge PCB schematics (KiCad).
+A command-line tool that extracts structured data from PDF datasheets using LLMs. Point it at a datasheet, get back JSON you can use in your tooling.
 
-## Problem Statement
-Hardware designers spend countless hours manually reading 80+ page datasheets to:
-1. Locate the **"Typical Application Circuit"** or reference design.
-2. Find the mathematical formulas for external passives (feedback dividers, inductors, bootstrap capacitors).
-3. Re-draw the schematic symbols, pins, and nets by hand in KiCad.
-
-`datasheet-cli` automates this entire flow:
-```
-[MPN / Query: e.g. TPS54302]
-         │
-         ▼ 1. Fetch
-[Download Datasheet PDF & Pinout Metadata]
-         │
-         ▼ 2. Parse & Segment
-[Locate "Typical Application" + "Design Procedure" + Pin Tables]
-         │
-         ▼ 3. Extract & Reason
-[Extract Vector/Raster Schematics + Read Design Formulas via Vision/LLM]
-         │
-         ▼ 4. Solve Passives
-[Compute E96 standard resistor values, L/C ratings for target specs]
-         │
-         ▼ 5. Export
-[Output KiCad Schematics (.kicad_sch), Netlists (JSON/TOKN), or SKiDL code]
-```
-
----
-
-## Architecture
-
-- **`fetcher`**: Retrieves component datasheets, pin counts, and package types given a Manufacturer Part Number (MPN).
-- **`parser`**: PDF layout analyzer that detects and crops schematic diagrams and design procedure sections (using PyMuPDF / Surya / Marker).
-- **`extractor`**: Extracts pin connectivity, component designators, netlists, and formula variables.
-- **`solver`**: Evaluates circuit equations and calculates standard passive component values based on target input/output parameters.
-- **`exporter`**: Generates KiCad schematics (`.kicad_sch`), SKiDL Python scripts, or structured JSON netlists.
-
----
-
-## Quickstart
-
-### Prerequisites
-- Python 3.10+
-- (Optional) KiCad 8+ for opening and validating generated schematics
-
-### Installation
 ```bash
-git clone https://github.com/<your-username>/datasheet-cli.git
+# Extract pinout data from a microcontroller datasheet
+datasheet extract pinout STM32F407.pdf -f
+
+# Get PCB footprint dimensions
+datasheet extract footprint TPS62840.pdf --out footprint.json
+
+# Search Mouser for a part and download its datasheet
+datasheet mouser download LM5164
+
+# Search JLCPCB parts library (no API key needed)
+datasheet jlcpcb search "100nF 0402" --json
+```
+
+## Why?
+
+Every electronics engineer has done this: you're designing a PCB, you need the pinout for a new chip, and you spend 20 minutes scrolling through a 500-page PDF to find Table 12 buried on page 47. Then you manually transcribe it into your symbol editor, probably making a typo that you won't catch until after the boards are fabbed.
+
+Datasheets are the lifeblood of hardware design, but they're trapped in PDFs that were designed for humans to read, not machines to parse. This tool uses Gemini's vision capabilities to extract the data you actually need:
+
+- **Pinout & configuration** - Every pin with electrical type, alternate functions, and groupings
+- **Footprint geometry** - Package dimensions, pad sizes, and land pattern recommendations
+- **Electrical specs** - Absolute max ratings, operating conditions, thermal data
+- **Power requirements** - Voltage rails, sequencing rules, decoupling capacitors
+- **High-speed constraints** - Impedance targets, length matching, termination requirements
+- **And more** - DRC rules, boot configuration, reference design BOM
+
+The output is structured JSON that you can pipe into your CAD tools, symbol generators, design rule checkers, or documentation pipelines.
+
+## Installation
+
+### From source (requires Rust 1.85+)
+
+```bash
+git clone https://github.com/akiselev/datasheet-cli
 cd datasheet-cli
-pip install -e .
+cargo install --path apps/datasheet-cli
 ```
 
-### CLI Usage (Planned)
+## FDX workspace
+
+The repository is now a Cargo workspace. Durable evidence/claim contracts live in `datasheet-core`, deterministic candidate indexing and claim assembly in `datasheet-compiler`, model artifact contracts in `datasheet-model`, and the existing GPL command application in `apps/datasheet-cli`.
+
+FDX1 defines state-aware evidence/claim contracts, FDX2 freezes the deterministic
+analog/power baseline, and the FDX3 contract foundation adds exact weak-label
+votes/abstentions, source-vocabulary maps, lineage-aware deterministic
+combination, and rights/calibration interfaces. These phases use only minimized
+fixtures; no production corpus or trained model is claimed. See
+[`docs/fdx/README.md`](docs/fdx/README.md).
+
+### Binary releases
+
+Coming soon.
+
+## Quick Start
+
+1. Get a [Google AI Studio API key](https://aistudio.google.com/apikey) (free tier works)
+
+2. Set your API key:
+   ```bash
+   export GOOGLE_API_KEY="your-api-key"
+   # or
+   export GEMINI_API_KEY="your-api-key"
+   ```
+
+3. Extract data:
+   ```bash
+   datasheet extract pinout ~/datasheets/STM32F407VG.pdf -f
+   ```
+
+That's it. The tool handles uploading the PDF to Gemini, manages caching (PDFs are cached for 48 hours to avoid re-uploads), and returns structured JSON.
+
+## Extraction Tasks
+
+### `pinout` - Pin Configuration
+
+Extracts complete pin tables for schematic symbol generation.
+
 ```bash
-# 1. Fetch datasheet for a specific part
-datasheet-cli fetch TPS54302DDCR
-
-# 2. Extract reference schematic and pinout
-datasheet-cli extract TPS54302DDCR --target-vout 3.3 --target-iout 2.0
-
-# 3. Export directly to KiCad schematic
-datasheet-cli generate TPS54302DDCR -o ./output/tps54302_buck.kicad_sch
+datasheet extract pinout LM5164.pdf -f
 ```
+
+```json
+{
+  "part_details": {
+    "part_number": "LM5164",
+    "datasheet_revision": "SNVSBJ4B - March 2023"
+  },
+  "packages": [{
+    "package_name": "SOT-23-6",
+    "total_pin_count": 6,
+    "pins": [
+      {
+        "pin_number": "1",
+        "pin_name": "SW",
+        "electrical_type": "Power Output",
+        "functional_group": "Power",
+        "description": "Switching node. Connect to inductor.",
+        "alternate_functions": []
+      }
+    ]
+  }]
+}
+```
+
+### `footprint` - Package Dimensions
+
+Extracts mechanical data for PCB footprint generation.
+
+```bash
+datasheet extract footprint TPS62840.pdf -f
+```
+
+```json
+{
+  "packages": [{
+    "package_code": "YKE",
+    "package_name": "DSBGA-4",
+    "component_dimensions": {
+      "body_description": "1.2mm x 0.8mm x 0.5mm (L x W x H), tolerance +/-0.05mm",
+      "pin_pitch_description": "0.4mm vertical pitch, 0.5mm horizontal pitch",
+      "pin_1_orientation": "Top-left corner identified by A1 marking"
+    },
+    "land_pattern_geometry": {
+      "pad_shape_description": "Rectangular pads with 0.05mm corner radius",
+      "pad_dimensions_mm": "0.25mm x 0.25mm nominal",
+      "solder_mask_instructions": "NSMD preferred. Mask opening = pad size."
+    }
+  }]
+}
+```
+
+### `characteristics` - Electrical Specifications
+
+Extracts parametric data for simulation and design verification.
+
+```bash
+datasheet extract characteristics TPS62840.pdf -f
+```
+
+```json
+{
+  "absolute_maximum_ratings": [
+    {
+      "parameter": "Input Voltage (VIN)",
+      "symbol": "VIN",
+      "limit_min": "-0.3V",
+      "limit_max": "6.5V"
+    }
+  ],
+  "electrical_specifications": [
+    {
+      "parameter_name": "Quiescent Current",
+      "symbol": "Iq",
+      "typ_value": "60nA",
+      "max_value": "120nA",
+      "test_conditions": "VIN=3.6V, No Load, Enable=High"
+    }
+  ],
+  "thermal_data": []
+}
+```
+
+### `power` - Power Supply Requirements
+
+Extracts power sequencing and decoupling requirements.
+
+```bash
+datasheet extract power ATSAM4S.pdf -f
+```
+
+### `high-speed` - Routing Constraints
+
+Extracts impedance, length matching, and termination requirements for USB, Ethernet, DDR, etc.
+
+```bash
+datasheet extract high-speed STM32H7.pdf -f
+```
+
+### `custom` - Your Own Prompts
+
+Use your own extraction prompt and JSON schema:
+
+```bash
+datasheet extract custom datasheet.pdf \
+  --prompt "Extract the I2C address configuration options" \
+  --schema schema.json
+```
+
+### `application-circuit` - Typical Application Circuit
+
+Extracts the full circuit topology from "Typical Application Circuit" diagrams as a structured netlist. Output includes typed components (ic, resistor, capacitor, diode, etc.), typed nets (power_input, power_output, ground, signal, internal), and pin-level connections. Useful as a starting point for schematic capture. Tested on TPS5430, TP4056, DRV8871.
+
+```bash
+datasheet extract application-circuit TPS5430.pdf -f --out extractions/application-circuits/TPS5430.json
+```
+
+### All Tasks
+
+| Task | Description |
+|------|-------------|
+| `pinout` | Pin configuration for schematic symbols |
+| `footprint` | Package dimensions for PCB footprints |
+| `characteristics` | Electrical and thermal specifications |
+| `power` | Power rails, sequencing, decoupling |
+| `high-speed` | High-speed interface routing constraints |
+| `drc-rules` | PCB design rule constraints |
+| `boot-config` | Boot mode and configuration pins |
+| `layout-constraints` | Component placement rules |
+| `reference-design` | Reference schematic BOM |
+| `feature-matrix` | Part variant comparison |
+| `application-circuit` | Typical application circuit as structured netlist |
+| `custom` | User-defined extraction |
+
+## Distributor Integration
+
+### Mouser
+
+Search parts and download datasheets directly:
+
+```bash
+# Search by keyword
+datasheet mouser search "STM32F4"
+
+# Get detailed part info
+datasheet mouser part 511-STM32F407VGT6
+
+# Download datasheet
+datasheet mouser download 511-STM32F407VGT6 --dir ./datasheets
+
+# Quick stock and pricing check
+datasheet mouser stock 511-STM32F407VGT6 [--json]
+```
+
+Requires: `MOUSER_API_KEY` ([Get one here](https://www.mouser.com/apihub/))
+
+### DigiKey
+
+```bash
+# Search parts
+datasheet digikey search "LM5164"
+
+# Get part details
+datasheet digikey part LM5164DDAR
+
+# Download datasheet
+datasheet digikey download LM5164DDAR
+
+# Quick stock and pricing check
+datasheet digikey stock LM5164DDAR [--json]
+```
+
+Requires: `DIGIKEY_CLIENT_ID` and `DIGIKEY_CLIENT_SECRET` ([Register here](https://developer.digikey.com/))
+
+### JLCPCB / LCSC
+
+Search the JLCPCB SMT parts library. No API key required.
+
+```bash
+# Search for parts
+datasheet jlcpcb search "STM32G0B1" --limit 5
+
+# Get detailed part info (includes JLCPCB assembly category, pricing, attributes)
+datasheet jlcpcb part C2829190 --json
+
+# Quick stock and pricing check
+datasheet jlcpcb stock C2829190 [--json]
+```
+
+Part details include the JLCPCB assembly category (`basic`, `preferred`, or `extended`) which determines feeder loading fees during assembly.
+
+### SnapEDA / SnapMagic
+
+Search parts and retrieve exact CAD data (symbols, footprints, pin-to-pad mappings) from SnapEDA. Basic search and data retrieval require no API key. Authenticated access unlocks direct CAD file downloads and improves success rate for parts whose data isn't available via the public API.
+
+```bash
+# Search for parts (no login required)
+datasheet snapeda search "ADS1115" --limit 5
+
+# Get complete symbol + footprint + pin-to-pad mapping
+datasheet snapeda part ADS1115IDGST --json -f
+
+# Get only footprint data
+datasheet snapeda footprint ADS1115IDGST --json -f
+
+# Get only symbol / pinout data
+datasheet snapeda symbol ADS1115IDGST --json -f
+
+# Log in to SnapEDA for authenticated downloads (session cached for 7 days)
+datasheet snapeda login
+datasheet snapeda login --username user@example.com --password '...'
+
+# Download CAD files directly (requires login)
+datasheet snapeda download ISO1541 --out ISO1541.IntLib                  # Altium (default)
+datasheet snapeda download ISO1541 --format kicad_mod --out iso.kicad_mod
+datasheet snapeda download ISO1541 --format eagle --out iso.lbr
+```
+
+The `<part>` argument is flexible — it auto-detects the input format:
+
+- **Numeric ID** — treated as a SnapEDA `unipart_id` directly (e.g., `datasheet snapeda part 123456`)
+- **Part number** — searches SnapEDA and uses the first match (e.g., `ADS1115IDGST`)
+- **SnapEDA URL** — extracts the part name from the URL and searches (e.g., `"https://www.snapeda.com/parts/TP4056-42-ESOP8/toppower/view-part/"`)
+
+**Authentication & fallback chain:** The `footprint`, `symbol`, and `part` subcommands first try the public Eagle XML API. If that returns empty (which happens for ~40% of parts), and you are logged in, they automatically fall back to downloading the Eagle format via the authenticated API, then to kicad_mod as a last resort. Logging in significantly improves part coverage.
+
+**Download formats:** `altium_native` (default — returns `.IntLib`), `eagle` (`.lbr`), `kicad` (`.kicad_sym`), `kicad_mod` (`.kicad_mod`), `kicad_modv6`.
+
+Example workflow:
+
+```bash
+# One-time login (prompts for password securely if not provided)
+datasheet snapeda login --username user@example.com
+
+# Search for a part
+datasheet snapeda search "ADS1115"
+
+# Get footprint data by part number (auto-falls back to authenticated download if needed)
+datasheet snapeda footprint ADS1115IDGST --json -f
+
+# Download Altium library file directly
+datasheet snapeda download ADS1115IDGST --out libs/ADS1115.IntLib
+
+# Save extraction to file
+datasheet snapeda part ESP32-C6-WROOM-1-N8 --json -f --out extractions/snapeda/ESP32-C6.json
+```
+
+SnapEDA data is derived from CAD models, so coordinates and dimensions are exact rather than LLM-interpreted. All coordinates include units (e.g., `"-2.475mm"`). The `part` subcommand returns a combined object with `pinout`, `footprint`, and `pin_to_pad_map` sections; the `symbol` and `footprint` subcommands return only their respective section.
+
+This makes SnapEDA a useful complement to PDF extraction: use SnapEDA for precise pad geometry and pin-to-pad mappings, and PDF extraction for electrical characteristics, timing specs, and other parametric data not present in CAD models.
+
+### Stock & Pricing
+
+All three distributors support a `stock` subcommand for a quick availability and pricing check without downloading a full datasheet. Returns stock level, pricing breaks, lead time, lifecycle status, and MOQ. Uses existing API data — no additional API calls beyond the standard part lookup.
+
+```bash
+datasheet mouser stock <part-number> [--json]
+datasheet digikey stock <part-number> [--json]
+datasheet jlcpcb stock <part-number> [--json]
+```
+
+When `--json` is used, each outputs a normalized `StockInfo` object suitable for scripting and automated availability checks.
+
+### SVD Register Maps
+
+Search and download SVD (System View Description) register map files from the cmsis-svd-data collection (872 files, 25 vendors). No API key required. The index is cached locally for 24 hours.
+
+```bash
+# Search for SVD files for a chip
+datasheet svd search <chip> [--vendor <vendor>] [--json]
+
+# Download an SVD file
+datasheet svd download <chip> [--vendor <vendor>] [--out <file>]
+
+# List all supported vendors
+datasheet svd vendors [--json]
+```
+
+SVD files describe the complete peripheral register map for a microcontroller and are used by debuggers (OpenOCD, probe-rs), IDEs, and firmware tools to provide register-level insight. They are the input format for tools like `svd2rust` (Rust PAC generation) and `svdtools`.
+
+## Footprint Image Extraction
+
+Extract footprint and package outline drawings from a PDF as cropped PNG images. Uses Gemini to locate the drawings, then renders and crops the relevant pages via MuPDF.
+
+```bash
+# Extract cropped footprint drawings as PNGs
+datasheet footprint-image SHT40.pdf -o ./footprints/
+
+# Render whole pages instead of cropping to bounding boxes
+datasheet footprint-image SHT40.pdf -o ./footprints/ --whole-page
+
+# Higher DPI for print-quality output
+datasheet footprint-image SHT40.pdf -o ./footprints/ --dpi 600
+```
+
+```
+datasheet footprint-image <PDF> [OPTIONS]
+
+Options:
+  -o, --out-dir <DIR>   Output directory (default: .)
+  --dpi <DPI>           Render resolution (default: 300)
+  --padding <N>         Padding around bounding box in 0-1000 units (default: 20)
+  --whole-page          Save the full page instead of cropping to bounding box
+  --model <MODEL>       Gemini model override
+  --no-cache            Disable PDF caching
+  --api-key <KEY>       API key override
+```
+
+Large PDFs are automatically split the same way as `extract` tasks. Multiple footprints on the same page are each cropped individually; with `--whole-page`, duplicate pages are deduplicated to one PNG per page.
+
+## Pipeline Examples
+
+### Generate KiCad symbols
+
+```bash
+datasheet extract pinout STM32F407.pdf | python generate_kicad_symbol.py > STM32F407.kicad_sym
+```
+
+### Batch process a directory
+
+```bash
+for pdf in datasheets/*.pdf; do
+  base=$(basename "$pdf" .pdf)
+  datasheet extract footprint "$pdf" --out "footprints/${base}.json"
+done
+```
+
+### Compare power requirements across parts
+
+```bash
+for part in TPS62840 TPS62842 TPS62844; do
+  datasheet mouser download "$part"
+  datasheet extract characteristics "${part}.pdf" --out "${part}_specs.json"
+done
+jq -s '.' *_specs.json > comparison.json
+```
+
+## Options
+
+```
+datasheet extract <TASK> <PDF> [OPTIONS]
+
+Options:
+  --model <MODEL>       Gemini model (default: gemini-3.8-flash)
+  --out <FILE>          Output file (default: stdout)
+  -f, --formatted       Pretty-print JSON
+  --prompt <TEXT|FILE>  Custom prompt (for 'custom' task)
+  --schema <JSON|FILE>  Custom JSON schema (for 'custom' task)
+  --no-cache            Disable PDF caching (re-upload each time)
+  --api-key <KEY>       API key (default: $GOOGLE_API_KEY or $GEMINI_API_KEY)
+```
+
+## Caching
+
+PDFs are uploaded to Gemini's File API and cached locally for 48 hours. This means:
+- First extraction of a new PDF: uploads the file (~1-10 seconds depending on size)
+- Subsequent extractions of the same PDF: uses cached reference (instant)
+
+Cache location: `~/.cache/datasheet-cli/` (Linux) or platform equivalent.
+
+To force re-upload: `--no-cache`
+
+## Accuracy
+
+The prompts are designed with anti-hallucination measures:
+- Every extraction includes verification data (part number, revision) that you can check
+- Missing data is explicitly marked as `null` or `"not specified"` rather than guessed
+- Prompts instruct the model to return errors if key sections aren't found
+
+That said, this is an LLM - always verify critical dimensions before sending boards to fab.
+
+## Model Selection
+
+The default model is `gemini-3.8-flash`. You can override with `--model`:
+
+```bash
+datasheet extract pinout datasheet.pdf --model gemini-3.1-pro-preview
+```
+
+For large datasheets (500+ pages), the newer Gemini models with expanded context windows work best.
+
+## Cost
+
+Gemini has a generous free tier. For typical usage:
+- ~1000 datasheet extractions/month on free tier
+- ~$0.001-0.01 per extraction on paid tier
+
+The exact cost depends on PDF size and model used.
+
+## Limitations
+
+- Only works with Gemini (no OpenAI/Anthropic support currently)
+- PDFs must be readable (not scanned images without OCR)
+- Some older/unusual datasheet formats may not extract cleanly
+- Maximum PDF size depends on Gemini's limits (~100MB)
+
+## Contributing
+
+Contributions welcome. Areas that could use help:
+
+- Additional extraction prompts for specific use cases
+- Integration with other CAD tools (Altium, Eagle, OrCAD)
+- Support for other LLM providers
+- Better error handling and validation
+
+## License
+
+GPL-3.0-only. See [LICENSE](LICENSE) for details.
+
+## See Also
+
+- [kicad-footprint-generator](https://github.com/pointhi/kicad-footprint-generator) - Generate KiCad footprints from parameters
+- [KicadModTree](https://gitlab.com/kicad/libraries/kicad-footprint-generator) - Python library for KiCad footprint scripts
