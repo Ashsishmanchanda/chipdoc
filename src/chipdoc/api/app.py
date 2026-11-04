@@ -10,8 +10,8 @@ from chipdoc.api.routes.parts import router as parts_router
 def create_app() -> FastAPI:
     """Build and configure the FastAPI application."""
     app = FastAPI(
-        title="DatasheetHub API",
-        description="State-of-the-art component discovery and direct CDN datasheet streaming engine.",
+        title="chipdoc API",
+        description="Fast electronic component discovery, direct cloud CDN datasheet resolution, and CORS-free PDF streaming.",
         version="1.0.0",
     )
 
@@ -30,7 +30,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health", tags=["Health"])
     def health_check():
-        return {"status": "ok", "service": "DatasheetHub"}
+        return {"status": "ok", "service": "chipdoc"}
 
     return app
 

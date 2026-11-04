@@ -1,4 +1,4 @@
-"""Command-line interface for DatasheetHub."""
+"""Command-line interface for chipdoc."""
 
 import typer
 import uvicorn
@@ -9,8 +9,8 @@ from rich.table import Table
 from chipdoc.catalog.service import CatalogService
 
 app = typer.Typer(
-    name="dhub",
-    help="DatasheetHub: Search components and resolve direct cloud CDN datasheets.",
+    name="chipdoc",
+    help="chipdoc: Search components and resolve direct cloud CDN datasheets.",
     add_completion=False,
 )
 console = Console()
@@ -83,7 +83,7 @@ def serve(
     reload: bool = typer.Option(True, "--reload/--no-reload", help="Auto-reload on code change"),
 ):
     """Start the FastAPI backend server for web frontend UIs."""
-    console.print(f"[bold green]Starting DatasheetHub API on http://{host}:{port}[/bold green]")
+    console.print(f"[bold green]Starting chipdoc API on http://{host}:{port}[/bold green]")
     console.print(f"[cyan]Interactive Swagger UI: http://{host}:{port}/docs[/cyan]")
     uvicorn.run("chipdoc.api.app:app", host=host, port=port, reload=reload)
 
