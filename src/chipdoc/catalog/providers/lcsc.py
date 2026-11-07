@@ -58,6 +58,9 @@ class LCSCProvider(BaseProvider):
                 code = item.get("componentCode", "")
                 mpn = item.get("componentModelEn") or code
 
+                lib_type = item.get("componentLibraryType")
+                lib_label = "Basic" if lib_type == "base" else "Extended" if lib_type == "expand" else lib_type
+
                 results.append(
                     PartSummary(
                         part_id=code,
@@ -66,6 +69,7 @@ class LCSCProvider(BaseProvider):
                         description=item.get("describe"),
                         package=item.get("componentSpecificationEn"),
                         category=item.get("secondTypeNameEn") or item.get("firstTypeNameEn"),
+                        library_type=lib_label,
                         stock=item.get("stockCount", 0),
                         price_usd=price_usd,
                         datasheet_url=None,
@@ -109,10 +113,13 @@ class LCSCProvider(BaseProvider):
 
             attributes = {}
             for attr in res_data.get("attributes", []):
-                name = attr.get("attributeNameEn")
-                val = attr.get("attributeValueName")
+                name = attr.get("attribute_name_en") or attr.get("attributeNameEn")
+                val = attr.get("attribute_value_name") or attr.get("attributeValueName")
                 if name and val:
                     attributes[name] = val
+
+            lib_type = res_data.get("componentLibraryType")
+            lib_label = "Basic" if lib_type == "base" else "Extended" if lib_type == "expand" else lib_type
 
             return PartDetail(
                 part_id=code,
@@ -122,6 +129,7 @@ class LCSCProvider(BaseProvider):
                 package=res_data.get("componentSpecificationEn"),
                 category=res_data.get("firstSortName"),
                 subcategory=res_data.get("secondSortName"),
+                library_type=lib_label,
                 stock=res_data.get("stockCount", 0),
                 price_breaks=price_breaks,
                 attributes=attributes,

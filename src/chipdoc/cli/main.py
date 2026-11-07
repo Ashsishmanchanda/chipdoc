@@ -30,8 +30,9 @@ def search(
         return
 
     table = Table(title=f"Catalog Results for '{query}'")
-    table.add_column("Part ID", style="bold yellow")
+    table.add_column("JLCPCB Part", style="bold yellow")
     table.add_column("MPN", style="bold green")
+    table.add_column("Type", style="bold magenta")
     table.add_column("Manufacturer", style="white")
     table.add_column("Package", style="cyan")
     table.add_column("Stock", style="magenta")
@@ -42,6 +43,7 @@ def search(
         table.add_row(
             p.part_id,
             p.mpn,
+            p.library_type or "-",
             p.manufacturer or "-",
             p.package or "-",
             str(p.stock or 0),
@@ -49,6 +51,50 @@ def search(
         )
 
     console.print(table)
+
+
+@app.command()
+def info(
+    part: str = typer.Argument(..., help="JLCPCB Part ID (e.g. C37593) or MPN (e.g. ADS1115, STM32F405)"),
+):
+    """View complete stocking, JLCPCB library type, volume price breaks, and electrical attributes."""
+    console.print(f"[cyan]Fetching component details for:[/cyan] [bold]{part}[/bold]...")
+    detail = service.get_detail(part)
+    if not detail:
+        console.print(f"[red]Component '{part}' not found.[/red]")
+        return
+
+    # Overview panel
+    summary_lines = [
+        f"[bold white]MPN:[/bold white] [bold green]{detail.mpn}[/bold green]",
+        f"[bold white]JLCPCB Part #:[/bold white] [bold yellow]{detail.part_id}[/bold yellow]",
+        f"[bold white]Manufacturer:[/bold white] {detail.manufacturer or '-'}",
+        f"[bold white]Package / Footprint:[/bold white] [cyan]{detail.package or '-'}[/cyan]",
+        f"[bold white]JLCPCB Library:[/bold white] [{'green' if detail.library_type == 'Basic' else 'yellow'}]{detail.library_type or '-'}[/]",
+        f"[bold white]Live Stock Quantity:[/bold white] [bold magenta]{detail.stock:,} units[/bold magenta]",
+    ]
+    if detail.datasheet_url:
+        summary_lines.append(f"[bold white]Direct Datasheet CDN:[/bold white] [blue underline]{detail.datasheet_url}[/]")
+
+    console.print(Panel("\n".join(summary_lines), title=f"Component Overview: {detail.mpn}", border_style="cyan"))
+
+    # Price Breaks Table
+    if detail.price_breaks:
+        price_table = Table(title="Volume Pricing Tiers (USD)")
+        price_table.add_column("Quantity", style="bold yellow")
+        price_table.add_column("Unit Price", style="bold green")
+        for pb in detail.price_breaks:
+            price_table.add_row(f"{pb.quantity}+", f"${pb.unit_price_usd:.4f}")
+        console.print(price_table)
+
+    # Attributes Table
+    if detail.attributes:
+        attr_table = Table(title="Electrical & Physical Specifications")
+        attr_table.add_column("Parameter", style="cyan")
+        attr_table.add_column("Value", style="white")
+        for k, v in list(detail.attributes.items())[:15]:
+            attr_table.add_row(k, v)
+        console.print(attr_table)
 
 
 @app.command()

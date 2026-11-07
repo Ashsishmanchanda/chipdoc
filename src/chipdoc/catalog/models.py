@@ -16,6 +16,7 @@ class PartSummary(BaseModel):
     description: Optional[str] = Field(None, description="Brief technical summary")
     package: Optional[str] = Field(None, description="SMD/Through-hole footprint package")
     category: Optional[str] = Field(None, description="Primary/Secondary component category")
+    library_type: Optional[str] = Field(None, description="JLCPCB library type: Basic vs Extended")
     stock: int = Field(0, description="Available stock quantity")
     price_usd: Optional[float] = Field(None, description="Base unit price for qty 1+")
     datasheet_url: Optional[str] = Field(None, description="Direct CDN PDF link if pre-resolved")
@@ -30,6 +31,7 @@ class PartDetail(BaseModel):
     package: Optional[str] = None
     category: Optional[str] = None
     subcategory: Optional[str] = None
+    library_type: Optional[str] = None  # "Basic" or "Extended"
     stock: int = 0
     price_breaks: List[PriceBreak] = Field(default_factory=list)
     attributes: Dict[str, str] = Field(default_factory=dict)
